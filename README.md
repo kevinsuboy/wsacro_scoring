@@ -30,4 +30,7 @@ ffmpeg -i output.mp4 -vf scale=1920:1080 -c:v libx264 -crf 20 -preset slow small
 // 720p
 ffmpeg -i output.mp4 -vf scale=1280:720 -c:v libx264 -crf 20 -preset slow smaller_720p.mp4
 
-convert.py -s 00:00:10 -c 00:00:37 -f flysight_data/stockholm3.csv -v ../../GH010420.MP4 -o 0_r1.mp4
+convert.py -s 00:00:10 -c 00:00:37 -f flysight_data/stockholm3.csv -fly 2 -v ../../GH010420.MP4 -o 0_r1.mp4
+
+
+score_round -r round_list.csv -c -s -re

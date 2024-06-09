@@ -8,7 +8,7 @@ def decode_fourcc(cc):
 
     return "".join([chr((int(cc) >> 8 * i) & 0xFF) for i in range(4)])
 class ThreadedVideo(object):
-    def __init__(self, src=0, comp_start=td(seconds=200),comp_time=td(seconds=157),mode=None,fout="__final__"):
+    def __init__(self, src=0, comp_start=td(seconds=200),comp_time=td(seconds=157),mode=None,fout="__final__",scores=None):
         self.capture = cv2.VideoCapture(src)
         self.capture.set(cv2.CAP_PROP_BUFFERSIZE, 2)
        
@@ -22,14 +22,20 @@ class ThreadedVideo(object):
         self.start = False
         self.comp_start = comp_start
         self.time = comp_time
-        self.elapsed = 0
+        self.elapsed = None
         self.mode = mode
+        self.scores = scores
+        self.pts = 0
+        if scores:
+            self.scores.reverse()
+            _, _ = self.scores.pop() # first is a sync
+            self.key, self.score = self.scores.pop()
         # self.timer = 0
         # self.timer = False
         # self.start = False
         # code.interact(local=locals())
         # Start frame retrieval thread
-        print(decode_fourcc(self.capture.get(cv2.CAP_PROP_FOURCC)))
+        # print(decode_fourcc(self.capture.get(cv2.CAP_PROP_FOURCC)))
         # print(decode_fourcc(cv2.VideoWriter_fourcc(*'h264')))
         self.fout = cv2.VideoWriter(
                         # '%s.mp4'%(fout),  
@@ -62,29 +68,54 @@ class ThreadedVideo(object):
                 # if not self.start:
                 #     self.start = time.time()
                 # self.timer = time.time()-self.start
-            # time.sleep(self.FPS)
+            if self.mode == "start":
+                time.sleep(self.FPS*0.85)
     def mod_frame(self):
         font = cv2.FONT_HERSHEY_DUPLEX 
         # print(t_cur)
         # print(self.comp_start)
         # print(t_cur >= self.comp_start)
         print_time = self.time
+        print_point = False
         if(self.t_cur >= self.comp_start):
             self.elapsed = self.t_cur - self.comp_start
             print_time = self.time - self.elapsed
-            # code.interact(local=locals())
-        cv2.putText(self.frame, str(print_time.total_seconds()),  
-                (200, 250), font, 
-                5, (0, 255, 255), 
+        if(self.scores and self.elapsed and self.elapsed >= td(seconds=0)):
+            delt = (self.elapsed - self.score)
+            if(delt.total_seconds() < 0.5 and delt.total_seconds() >= 0):
+                print_point = True
+                # code.interact(local=locals ())
+            elif delt.total_seconds() >= 0.5:
+                # print(delt)
+                self.pts+=1
+                self.key, self.score = self.scores.pop()
+
+        if print_time >= td(seconds=0):
+            self.last_frame = self.frame
+        else:
+            print_time = td(seconds=0)
+        cv2.putText(self.last_frame, str(round(print_time.total_seconds(),2)),  
+                (100, 125), font, 
+                3, (0, 255, 255), 
                 10, cv2.LINE_AA)
+        cv2.putText(self.last_frame, "%d"%(self.pts),
+                (300, 250), font, 
+                3, (255, 0, 255), 
+                10, cv2.LINE_AA)
+        if print_point:
+            cv2.putText(self.last_frame, "%s"%(self.key),
+                    (300, 250), font, 
+                    3, (255, 255, 0), 
+                    10, cv2.LINE_AA)
         if self.mode != "start":
-            self.fout.write(self.frame)
+            self.fout.write(self.last_frame)
         # else:
     def show_frame(self):
         if self.status:
             if self.mode == "start":
                 cv2.imshow('frame', self.frame)
-            key = cv2.waitKey(round(self.FPS_MS/10))
+            # cv2.imshow('frame', self.frame)
+            key = cv2.waitKey(round(self.FPS_MS))
             if self.mode == "start":
                 if key == ord('k') and not self.start:
                     self.done = True

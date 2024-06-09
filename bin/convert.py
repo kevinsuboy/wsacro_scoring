@@ -7,54 +7,76 @@ import code
 from datetime import datetime as dt
 from datetime import timedelta as td
 
-def parse_cmdline():
-    parser = argparse.ArgumentParser(
-        prog='convert.py',
-        description='',
-        epilog=''
-    )
+def parse_cmdline(parser=None):
+    if not parser:
+        parser = argparse.ArgumentParser(
+            prog='convert.py',
+            description='',
+            epilog=''
+        )
     parser.add_argument('-s', '--slate',action="store",help='slate start',required=True) 
     parser.add_argument('-c', '--comp',action="store",help='comp start, from plane exit',required=True) 
     parser.add_argument('-f', '--flysight',action="store",help='',required=True) 
+    parser.add_argument('-fly', '--fver',action="store",help='',required=True) 
     parser.add_argument('-v', '--mp4',action="store",help='',required=True) 
     parser.add_argument('-o', '--output',action="store",help='',required=True) 
+    parser.add_argument('-nr', '--no_redo',action="store_true",help='') 
     return parser.parse_args()
-if __name__ == '__main__':
-    args = parse_cmdline()
-    plot_run, comp_run, comp_time = pf.get_flysight(args.flysight)
-    slate_beg = dt.strptime(args.slate,"%H:%M:%S") - td(seconds=5)
-    slate_end = dt.strptime(args.slate,"%H:%M:%S") + td(seconds=5)
-    comp_beg = dt.strptime(args.comp,"%H:%M:%S") - td(seconds=5)
-    # comp_end = dt.strptime(args.comp,"%H:%M:%S")
-    comp_end = dt.strptime(args.comp,"%H:%M:%S") + comp_time
+class Convert(object):
+    def __init__(self,flysight,fver,slate,comp,output,mp4):
+        self.DEFAULT_COMP_PAD = 5
+        self.DEFAULT_SLATE_PAD = 5
+        self.DEFAULT_SAMPLES = 2
+        self.output = output
+        self.mp4 = mp4
+        self.plot_run, self.comp_run, self.comp_time = pf.get_flysight(pf.convert_flysight(flysight,fver))
+        slate = dt.strptime(slate,"%H:%M:%S")
+        comp = dt.strptime(comp,"%H:%M:%S")
+        zero = (slate - dt.strptime("00:00:00","%H:%M:%S")) >= td(seconds=self.DEFAULT_SLATE_PAD)
+        # code.interact(local=locals())
+        self.slate_beg = (slate - td(seconds=self.DEFAULT_SLATE_PAD)) if zero else slate
+        self.slate_end = slate + td(seconds=self.DEFAULT_SLATE_PAD)
+        zero = (comp - dt.strptime("00:00:00","%H:%M:%S")) >= td(seconds=self.DEFAULT_COMP_PAD)
+        self.comp_beg = (comp - td(seconds=self.DEFAULT_COMP_PAD)) if zero else comp
+        # comp_end = comp
+        self.comp_end = comp + self.comp_time + td(seconds=self.DEFAULT_COMP_PAD)
+    def convert_format(self):
+        os.system("rm -rf __%s_tmp__.mp4"%(self.output))
+        os.system("rm -rf %s_slate.mp4"%(self.output))
+        os.system("ffmpeg -ss %s -to %s -i %s -vf scale=1280:720 -r 30 -an __%s_tmp__.mp4"%(dt.strftime(self.comp_beg,"%H:%M:%S"),dt.strftime(self.comp_end,"%H:%M:%S"),self.mp4,self.output))
+        # os.system("ffmpeg -ss %s -to %s -i %s -vcodec copy -acodec copy __%s_tmp__.mp4"%(dt.strftime(self.comp_beg,"%H:%M:%S"),dt.strftime(self.comp_end,"%H:%M:%S"),self.mp4,self.output))
+        os.system("ffmpeg -ss %s -to %s -i %s -vf scale=1920:1080 -r 30 -an %s_slate.mp4"%(dt.strftime(self.slate_beg,"%H:%M:%S"),dt.strftime(self.slate_end,"%H:%M:%S"),self.mp4,self.output))
+        # os.system("ffmpeg -ss %s -to %s -i %s -vcodec copy -acodec copy %s_slate.mp4"%(dt.strftime(self.slate_beg,"%H:%M:%S"),dt.strftime(self.slate_end,"%H:%M:%S"),self.mp4,self.output))
 
-    os.system("rm -rf __tmp__.mp4")
-    os.system("ffmpeg -ss %s -to %s -i %s -vcodec copy -acodec copy __tmp__.mp4"%(dt.strftime(comp_beg,"%H:%M:%S"),dt.strftime(comp_end,"%H:%M:%S"),args.mp4))
-    # os.system("ffmpeg -ss %s -to %s -i %s -vcodec copy -acodec copy %s_slate.mp4"%(dt.strftime(slate_beg,"%H:%M:%S"),dt.strftime(slate_end,"%H:%M:%S"),args.mp4,args.output))
-    # code.interact(local=locals()) 
-    # quit()
-    comp_start = 0
-    samples = 1
-    for i in range(samples):
-        threaded_camera = tv.ThreadedVideo('./__tmp__.mp4', comp_time=comp_time, mode="start")
+        # code.interact(local=locals()) 
+        # quit()
+    def get_start(self):
+        # input("Press Enter to continue...")
+        self.comp_start = 0
+        for i in range(self.DEFAULT_SAMPLES):
+            threaded_camera = tv.ThreadedVideo('./__%s_tmp__.mp4'%(self.output), comp_time=self.comp_time, mode="start")
+            while not threaded_camera.done:
+                try:
+                    threaded_camera.show_frame()
+                except AttributeError:
+                    pass
+            self.comp_start += threaded_camera.join().total_seconds()
+        self.comp_start /= self.DEFAULT_SAMPLES
+    def save_video(self,scores):
+        threaded_camera = tv.ThreadedVideo('./__%s_tmp__.mp4'%(self.output), comp_start=td(seconds=self.comp_start), comp_time=self.comp_time, fout=self.output, scores=scores)
         while not threaded_camera.done:
             try:
                 threaded_camera.show_frame()
             except AttributeError:
                 pass
-        comp_start += threaded_camera.join().total_seconds()
-    comp_start /= samples
+if __name__ == '__main__':
+    args = parse_cmdline()
+    conv = Convert(args.flysight,args.fver,args.slate,args.comp,args.output,args.mp4)
+    if not args.no_redo:
+        conv.convert_format()
+    conv.get_start()
+    # conv.save_video()
 
-    comp_end = comp_beg + td(seconds=comp_start) + comp_time
-    # code.interact(local=locals()) 
-    # os.system("rm -rf __tmp__.mp4")
-    # os.system("ffmpeg -ss %s -to %s -i %s -vcodec copy -acodec copy __tmp__.mp4"%(dt.strftime(comp_beg,"%H:%M:%S"),dt.strftime(comp_end,"%H:%M:%S"),args.mp4))
 
-    threaded_camera = tv.ThreadedVideo('./__tmp__.mp4', comp_start=td(seconds=comp_start), comp_time=comp_time)
-    while not threaded_camera.done:
-        try:
-            threaded_camera.show_frame()
-        except AttributeError:
-            pass
     
     

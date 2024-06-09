@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import code
+import os, subprocess
 import matplotlib.pyplot as plt
 from datetime import datetime as dt
 from datetime import timedelta as td
@@ -14,6 +15,7 @@ def parse_cmdline():
         epilog=''
     )
     parser.add_argument('-f', '--filein',action="store",help='') 
+    parser.add_argument('-fly', '--flysight',action="store",type=int,help='') 
     return parser.parse_args()
 def get_flysight(filein):
     df = pd.read_csv(filein,parse_dates=['time'])
@@ -23,9 +25,26 @@ def get_flysight(filein):
     # df['accel_D'] = (df['velD'] - df['velD'].shift(1)) / (df['time'] - df['time'].shift(1)).dt.total_seconds()
     plot_run = df[(df["time"] >= df_start["time"]-td(seconds=10)) & (df["hMSL"] >= 500)]
     return plot_run, comp_run, comp_run.iloc[-1]["time"] - comp_run.iloc[0]["time"]
+def convert_flysight(filein,fly = None):
+    # code.interact(local=locals()) 
+    if fly == 3:
+        fN = "f3"
+        rm_lines = "1d;2d;3d;4d;6d;7d;"
+    else:
+        fN = "f2"
+        rm_lines = '2d;'
+    if fly:
+        new_file = "%s_%s.%s"%(filein.split('.')[0],fN,filein.split('.')[-1])
+        os.system("sed '%s' %s > %s"%(rm_lines, filein, new_file))
+        os.system("sed -i 's/$COL,//g' %s"%(new_file))
+        return new_file
+    return filein
+
 if __name__ == '__main__':
     args = parse_cmdline()
-    plot_run, comp_run, comp_time = get_flysight(args.filein)
+    filein = convert_flysight(args.filein,args.flysight)
+    # code.interact(local=locals())
+    plot_run, comp_run, comp_time = get_flysight(filein)
 
     fig, ax1 = plt.subplots()
     ax2 = ax1.twinx()
