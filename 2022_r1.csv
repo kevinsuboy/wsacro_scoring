@@ -1,4 +1,4 @@
 slate,comp,flysight,fver,mp4,output,rtype
-00:00:00,00:00:07,flysight_data/24-03-29/18-39-05/TRACK.CSV,3,2022_USPA/fs_1.mp4,USPA_2022_scored/flatspin_round1,F
-00:00:00,00:00:07,flysight_data/stockholm3.csv,2,2022_USPA/pp_1.mp4,USPA_2022_scored/pteam_pteradactyl_round1,F
-00:00:00,00:00:06,flysight_data/24-03-29/17-21-32/TRACK.CSV,3,2022_USPA/mm_1.mp4,USPA_2022_scored/moementum_round1,F
+00:00:00,00:00:07,flysight_data/24-03-29/18-39-05/TRACK.CSV,3,2022_USPA/fs_1.mp4,2022_USPA_scored/1/flatspin,F
+00:00:00,00:00:06,flysight_data/24-03-29/17-21-32/TRACK.CSV,3,2022_USPA/mm_1.mp4,2022_USPA_scored/1/moementum,F
+00:00:00,00:00:07,flysight_data/stockholm3.csv,2,2022_USPA/pp_1.mp4,2022_USPA_scored/1/pteam_pteradactyl,F

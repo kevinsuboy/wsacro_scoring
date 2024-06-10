@@ -62,11 +62,13 @@ class KeyLog(object):
         self.log = []
         self.start = None
         self.round = round
+        self.accepted = ['+','-','0','*']
 
     def on_press(self,key):
         # print('{0} pressed'.format(
             # key))
-        if key != Key.esc:
+        # code.interact(local=locals())
+        if key != Key.esc and (key == Key.space or key.char in self.accepted):
             if not self.start:
                 self.start = dt.now()
             tdelta = dt.now()-self.start
@@ -82,10 +84,14 @@ class KeyLog(object):
     def on_release(self,key):
         # print('{0} release'.format(
             # key))
+        if self.round == 'F':
+            return False
         if key == Key.esc:
             # Stop listener
             return False
     def run(self,filein):
+        print("\n====== scoring for %s ======"%(filein))
+        print("Press <esc> when done\n")
         # vlc = '/c/Program\ Files/VideoLAN/VLC/vlc.exe'
         subprocess.Popen(["C:/Program Files/VideoLAN/VLC/vlc.exe",filein])
         with open(self.log_file, 'a') as f:
@@ -111,3 +117,4 @@ if __name__ == "__main__":
     args = parse_cmdline()
     # Collect events until released
     Keys = KeyLog(args.output).run(args.mp4)
+    code.interact(local=locals())

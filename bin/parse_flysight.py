@@ -39,13 +39,7 @@ def convert_flysight(filein,fly = None):
         os.system("sed -i 's/$COL,//g' %s"%(new_file))
         return new_file
     return filein
-
-if __name__ == '__main__':
-    args = parse_cmdline()
-    filein = convert_flysight(args.filein,args.flysight)
-    # code.interact(local=locals())
-    plot_run, comp_run, comp_time = get_flysight(filein)
-
+def plot_flysight(plot_run,comp_time):
     fig, ax1 = plt.subplots()
     ax2 = ax1.twinx()
     ax3 = ax2.twinx()
@@ -55,3 +49,10 @@ if __name__ == '__main__':
     # comp_run.plot(ax=ax3,x='time',y=['accel_D'],ylim=[0,15])
     plt.show()
     # code.interact(local=locals())
+
+if __name__ == '__main__':
+    args = parse_cmdline()
+    filein = convert_flysight(args.filein,args.flysight)
+    # code.interact(local=locals())
+    plot_run, comp_run, comp_time = get_flysight(filein)
+    plot_flysight(plot_run,comp_time)

@@ -27,11 +27,15 @@ class Convert(object):
         self.DEFAULT_COMP_PAD = 5
         self.DEFAULT_SLATE_PAD = 5
         self.DEFAULT_SAMPLES = 2
+        self.DEFAULT_COMP_TIME = 60
         tmp = output.split('/')
         self.fout_dir = '/'.join(tmp[0:-1])
         self.fout = tmp[-1]
         self.mp4 = mp4
-        self.plot_run, self.comp_run, self.comp_time = pf.get_flysight(pf.convert_flysight(flysight,fver))
+        if flysight:
+            self.plot_run, self.comp_run, self.comp_time = pf.get_flysight(pf.convert_flysight(flysight,fver))
+        else:
+            self.comp_time = td(seconds=self.DEFAULT_COMP_TIME)
         slate = dt.strptime(slate,"%H:%M:%S")
         comp = dt.strptime(comp,"%H:%M:%S")
         zero = (slate - dt.strptime("00:00:00","%H:%M:%S")) >= td(seconds=self.DEFAULT_SLATE_PAD)
@@ -44,11 +48,11 @@ class Convert(object):
         self.comp_end = comp + self.comp_time + td(seconds=self.DEFAULT_COMP_PAD)
     def convert_format(self):
         os.system("rm -rf %s/__%s_tmp__.mp4"%(self.fout_dir,self.fout))
-        os.system("rm -rf %s/%s_slate.mp4"%(self.fout_dir,self.fout))
+        os.system("rm -rf %s/slate_%s.mp4"%(self.fout_dir,self.fout))
         os.system("ffmpeg -ss %s -to %s -i %s -vf scale=1280:720 -r 30 -an %s/__%s_tmp__.mp4"%(dt.strftime(self.comp_beg,"%H:%M:%S"),dt.strftime(self.comp_end,"%H:%M:%S"),self.mp4,self.fout_dir,self.fout))
         # os.system("ffmpeg -ss %s -to %s -i %s -vcodec copy -acodec copy %s/__%s_tmp__.mp4"%(dt.strftime(self.comp_beg,"%H:%M:%S"),dt.strftime(self.comp_end,"%H:%M:%S"),self.mp4,self.fout_dir,self.fout))
-        os.system("ffmpeg -ss %s -to %s -i %s -vf scale=1920:1080 -r 30 -an %s/%s_slate.mp4"%(dt.strftime(self.slate_beg,"%H:%M:%S"),dt.strftime(self.slate_end,"%H:%M:%S"),self.mp4,self.fout_dir,self.fout))
-        # os.system("ffmpeg -ss %s -to %s -i %s -vcodec copy -acodec copy %s/%s_slate.mp4"%(dt.strftime(self.slate_beg,"%H:%M:%S"),dt.strftime(self.slate_end,"%H:%M:%S"),self.mp4,self.fout_dir,self.fout))
+        os.system("ffmpeg -ss %s -to %s -i %s -vf scale=1920:1080 -r 30 -an %s/slate_%s.mp4"%(dt.strftime(self.slate_beg,"%H:%M:%S"),dt.strftime(self.slate_end,"%H:%M:%S"),self.mp4,self.fout_dir,self.fout))
+        # os.system("ffmpeg -ss %s -to %s -i %s -vcodec copy -acodec copy %s/slate_%s.mp4"%(dt.strftime(self.slate_beg,"%H:%M:%S"),dt.strftime(self.slate_end,"%H:%M:%S"),self.mp4,self.fout_dir,self.fout))
 
         # code.interact(local=locals()) 
         # quit()

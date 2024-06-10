@@ -1,5 +1,5 @@
-slate,comp,flysight,fver,mp4,output
-00:00:05,00:00:16,flysight_data/24-03-29/18-39-05/TRACK.CSV,3,10-29-45-267.MP4,perf_r0
-00:00:10,00:00:37,flysight_data/stockholm3.csv,2,../../GH010420.MP4,stockholm_r0
-00:00:00,00:00:05,flysight_data/24-03-29/17-21-32/TRACK.CSV,3,./Kevin_Julia_044824_jump_V1-0004.mov,elsinore_r1
-00:00:32,00:00:49,flysight_data/24-03-29/18-39-05/TRACK.CSV,3,../../GX010612.MP4,ivy_r1
+slate,comp,flysight,fver,mp4,output,rtype
+00:00:05,00:00:16,flysight_data/24-03-29/18-39-05/TRACK.CSV,3,10-29-45-267.MP4,./test_video_scored/perf_r0,F
+00:00:10,00:00:37,flysight_data/stockholm3.csv,2,./test_video/GH010420.MP4,./test_video_scored/stockholm_r0,F
+00:00:00,00:00:05,flysight_data/24-03-29/17-21-32/TRACK.CSV,3,./test_video/Kevin_Julia_044824_jump_V1-0004.mov,./test_video_scored/elsinore_r1,F
+00:00:32,00:00:49,flysight_data/24-03-29/18-39-05/TRACK.CSV,3,./test_video/GX010612.MP4,./test_video_scored/ivy_r1,F

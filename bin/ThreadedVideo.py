@@ -33,9 +33,12 @@ class ThreadedVideo(object):
             '*': "No Attempt"
         }
         if scores:
-            self.scores.reverse()
-            self.scores.pop() # first is a sync
-            self.get_scores()
+            # code.interact(local=locals())
+            _,_,_,self.style,self.dive_plan,self.camera = self.scores.pop()
+            if self.mode == "C":
+                self.scores.reverse()
+                self.scores.pop() # first is a sync
+                self.get_scores()
         # self.timer = 0
         # self.timer = False
         # self.start = False
@@ -43,25 +46,33 @@ class ThreadedVideo(object):
         # Start frame retrieval thread
         # print(decode_fourcc(self.capture.get(cv2.CAP_PROP_FOURCC)))
         # print(decode_fourcc(cv2.VideoWriter_fourcc(*'h264')))
+        # tmp = fout.split('/')
+        # fout = tmp[-1]
+        # fout_dir = '/'.join(tmp[0:-1])
+        # fout_dir = '.' if not fout_dir else fout_dir
+        # code.interact(local=locals())
+        if len(fout.split('/'))>1:
+            self.rn,self.teamname = fout.split('/')[-2:]
+        else:
+            self.rn,self.teamname = 0, "ghost"
         self.fout = cv2.VideoWriter(
                         # '%s.mp4'%(fout),  
                         '%s.mkv'%(fout),  
+                        # '%s/_%s.mkv'%(fout_dir,fout),  
                         # cv2.VideoWriter_fourcc(*'avc1'), 
                         # cv2.VideoWriter_fourcc(*'h264'), 
                         cv2.VideoWriter_fourcc(*'FMP4'), 
                         # cv2.VideoWriter_fourcc(*'mp4v'), 
                         self.capture.get(cv2.CAP_PROP_FPS), (int(self.capture.get(3)),int(self.capture.get(4))),
                         True) 
-        # code.interact(local=locals())
         self.thread = Thread(target=self.update, args=())
         self.thread.daemon = True
         self.thread.start()
         ##
     def get_scores(self):
-        if self.mode == "C":
-            self.key, self.score,self.comments,self.style = self.scores.pop()
-        elif self.mode == "F":
-            self.key, self.score,self.comments,self.style,self.dive_plan,self.camera_quality,self.camera_prog = self.scores.pop()
+        if not self.scores:
+            return
+        self.key, self.score,self.comments,_,_,_ = self.scores.pop()
 
     def update(self):
         while not self.done:
@@ -88,10 +99,11 @@ class ThreadedVideo(object):
         # print(t_cur >= self.comp_start)
         print_time = self.time
         print_point = False
+        print_final = False
         if(self.t_cur >= self.comp_start):
             self.elapsed = self.t_cur - self.comp_start
             print_time = self.time - self.elapsed
-        if(self.scores and self.elapsed and self.elapsed >= td(seconds=0)):
+        if(self.mode == 'C' and self.scores and self.elapsed and self.elapsed >= td(seconds=0)):
             delt = (self.elapsed - self.score)
             if (print_time.total_seconds() >= 0.02): 
                 if(delt.total_seconds() < 0.5 and delt.total_seconds() >= 0):
@@ -106,24 +118,44 @@ class ThreadedVideo(object):
             self.last_frame = self.frame
         else:
             print_time = td(seconds=0)
+            print_final = True
+        cv2.putText(self.last_frame, "%s - ROUND %s"%(self.teamname, self.rn),  
+                (200, 50), font, 
+                2, (255, 255, 255), 
+                7, cv2.LINE_AA)
         cv2.putText(self.last_frame, str(round(print_time.total_seconds(),1)),  
                 (1080, 50), font, 
                 2, (255, 255, 255), 
                 7, cv2.LINE_AA)
-        cv2.putText(self.last_frame, "%d"%(self.pts),
-                (1150, 700), font, 
-                3, (255, 255, 255), 
-                # 3, (255, 0, 255), 
-                10, cv2.LINE_AA)
+        if self.mode == 'C':
+            cv2.putText(self.last_frame, "%d"%(self.pts),
+                    (1150, 700), font, 
+                    3, (255, 255, 255), 
+                    # 3, (255, 0, 255), 
+                    10, cv2.LINE_AA)
         if print_point:
             cv2.putText(self.last_frame, "%s"%(self.key_dict[self.key]),
-                    (200, 700), font, 
+                    (200, 680), font, 
                     2, (0, 0, 255), 
                     7, cv2.LINE_AA)
             cv2.circle(self.last_frame,
-                    (100, 700), 10, 
+                    (50, 6800), 10, 
                     (0, 255 if self.key == "'+'" else 0, 0 if self.key == "'+'" else 255), 
-                    50)
+                    20)
+        if print_final:
+            cv2.putText(self.last_frame, "style: %.1f"%(self.style),
+                    (300, 200), font, 
+                    2, (255, 255, 255), 
+                    3, cv2.LINE_AA)
+            if self.mode == 'F':
+                cv2.putText(self.last_frame, "dive_plan: %.1f"%(self.dive_plan),
+                        (300, 300), font, 
+                        2, (255, 255, 255), 
+                        3, cv2.LINE_AA)
+                cv2.putText(self.last_frame, "camera: (%.1f+%.1f)"%(self.camera),
+                        (300, 400), font, 
+                        2, (255, 255, 255), 
+                        5, cv2.LINE_AA)
         if self.mode != "start":
             self.fout.write(self.last_frame)
         # else:
