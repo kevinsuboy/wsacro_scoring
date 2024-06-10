@@ -139,7 +139,7 @@ class ThreadedVideo(object):
                     2, (0, 0, 255), 
                     7, cv2.LINE_AA)
             cv2.circle(self.last_frame,
-                    (50, 6800), 10, 
+                    (50, 680), 10, 
                     (0, 255 if self.key == "'+'" else 0, 0 if self.key == "'+'" else 255), 
                     20)
         if print_final:
