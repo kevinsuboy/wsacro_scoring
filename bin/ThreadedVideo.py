@@ -26,10 +26,16 @@ class ThreadedVideo(object):
         self.mode = mode
         self.scores = scores
         self.pts = 0
+        self.key_dict = {
+            "'+'": "",
+            "'-'": "Bad Grip",
+            "<96>": "Camera View",
+            '*': "No Attempt"
+        }
         if scores:
             self.scores.reverse()
-            _, _ = self.scores.pop() # first is a sync
-            self.key, self.score = self.scores.pop()
+            self.scores.pop() # first is a sync
+            self.get_scores()
         # self.timer = 0
         # self.timer = False
         # self.start = False
@@ -51,7 +57,12 @@ class ThreadedVideo(object):
         self.thread.daemon = True
         self.thread.start()
         ##
-        
+    def get_scores(self):
+        if self.mode == "C":
+            self.key, self.score,self.comments,self.style = self.scores.pop()
+        elif self.mode == "F":
+            self.key, self.score,self.comments,self.style,self.dive_plan,self.camera_quality,self.camera_prog = self.scores.pop()
+
     def update(self):
         while not self.done:
             if self.capture.isOpened():
@@ -82,31 +93,37 @@ class ThreadedVideo(object):
             print_time = self.time - self.elapsed
         if(self.scores and self.elapsed and self.elapsed >= td(seconds=0)):
             delt = (self.elapsed - self.score)
-            if(delt.total_seconds() < 0.5 and delt.total_seconds() >= 0):
-                print_point = True
-                # code.interact(local=locals ())
-            elif delt.total_seconds() >= 0.5:
-                # print(delt)
-                self.pts+=1
-                self.key, self.score = self.scores.pop()
+            if (print_time.total_seconds() >= 0.02): 
+                if(delt.total_seconds() < 0.5 and delt.total_seconds() >= 0):
+                    print_point = True
+                    # code.interact(local=locals ())
+                elif delt.total_seconds() >= 0.5:
+                    # print(delt)
+                    self.pts+=1 if self.key == "'+'" else 0
+                    self.get_scores()
 
         if print_time >= td(seconds=0):
             self.last_frame = self.frame
         else:
             print_time = td(seconds=0)
-        cv2.putText(self.last_frame, str(round(print_time.total_seconds(),2)),  
-                (100, 125), font, 
-                3, (0, 255, 255), 
-                10, cv2.LINE_AA)
+        cv2.putText(self.last_frame, str(round(print_time.total_seconds(),1)),  
+                (1080, 50), font, 
+                2, (255, 255, 255), 
+                7, cv2.LINE_AA)
         cv2.putText(self.last_frame, "%d"%(self.pts),
-                (300, 250), font, 
-                3, (255, 0, 255), 
+                (1150, 700), font, 
+                3, (255, 255, 255), 
+                # 3, (255, 0, 255), 
                 10, cv2.LINE_AA)
         if print_point:
-            cv2.putText(self.last_frame, "%s"%(self.key),
-                    (300, 250), font, 
-                    3, (255, 255, 0), 
-                    10, cv2.LINE_AA)
+            cv2.putText(self.last_frame, "%s"%(self.key_dict[self.key]),
+                    (200, 700), font, 
+                    2, (0, 0, 255), 
+                    7, cv2.LINE_AA)
+            cv2.circle(self.last_frame,
+                    (100, 700), 10, 
+                    (0, 255 if self.key == "'+'" else 0, 0 if self.key == "'+'" else 255), 
+                    50)
         if self.mode != "start":
             self.fout.write(self.last_frame)
         # else:

@@ -27,7 +27,9 @@ class Convert(object):
         self.DEFAULT_COMP_PAD = 5
         self.DEFAULT_SLATE_PAD = 5
         self.DEFAULT_SAMPLES = 2
-        self.output = output
+        tmp = output.split('/')
+        self.fout_dir = '/'.join(tmp[0:-1])
+        self.fout = tmp[-1]
         self.mp4 = mp4
         self.plot_run, self.comp_run, self.comp_time = pf.get_flysight(pf.convert_flysight(flysight,fver))
         slate = dt.strptime(slate,"%H:%M:%S")
@@ -41,12 +43,12 @@ class Convert(object):
         # comp_end = comp
         self.comp_end = comp + self.comp_time + td(seconds=self.DEFAULT_COMP_PAD)
     def convert_format(self):
-        os.system("rm -rf __%s_tmp__.mp4"%(self.output))
-        os.system("rm -rf %s_slate.mp4"%(self.output))
-        os.system("ffmpeg -ss %s -to %s -i %s -vf scale=1280:720 -r 30 -an __%s_tmp__.mp4"%(dt.strftime(self.comp_beg,"%H:%M:%S"),dt.strftime(self.comp_end,"%H:%M:%S"),self.mp4,self.output))
-        # os.system("ffmpeg -ss %s -to %s -i %s -vcodec copy -acodec copy __%s_tmp__.mp4"%(dt.strftime(self.comp_beg,"%H:%M:%S"),dt.strftime(self.comp_end,"%H:%M:%S"),self.mp4,self.output))
-        os.system("ffmpeg -ss %s -to %s -i %s -vf scale=1920:1080 -r 30 -an %s_slate.mp4"%(dt.strftime(self.slate_beg,"%H:%M:%S"),dt.strftime(self.slate_end,"%H:%M:%S"),self.mp4,self.output))
-        # os.system("ffmpeg -ss %s -to %s -i %s -vcodec copy -acodec copy %s_slate.mp4"%(dt.strftime(self.slate_beg,"%H:%M:%S"),dt.strftime(self.slate_end,"%H:%M:%S"),self.mp4,self.output))
+        os.system("rm -rf %s/__%s_tmp__.mp4"%(self.fout_dir,self.fout))
+        os.system("rm -rf %s/%s_slate.mp4"%(self.fout_dir,self.fout))
+        os.system("ffmpeg -ss %s -to %s -i %s -vf scale=1280:720 -r 30 -an %s/__%s_tmp__.mp4"%(dt.strftime(self.comp_beg,"%H:%M:%S"),dt.strftime(self.comp_end,"%H:%M:%S"),self.mp4,self.fout_dir,self.fout))
+        # os.system("ffmpeg -ss %s -to %s -i %s -vcodec copy -acodec copy %s/__%s_tmp__.mp4"%(dt.strftime(self.comp_beg,"%H:%M:%S"),dt.strftime(self.comp_end,"%H:%M:%S"),self.mp4,self.fout_dir,self.fout))
+        os.system("ffmpeg -ss %s -to %s -i %s -vf scale=1920:1080 -r 30 -an %s/%s_slate.mp4"%(dt.strftime(self.slate_beg,"%H:%M:%S"),dt.strftime(self.slate_end,"%H:%M:%S"),self.mp4,self.fout_dir,self.fout))
+        # os.system("ffmpeg -ss %s -to %s -i %s -vcodec copy -acodec copy %s/%s_slate.mp4"%(dt.strftime(self.slate_beg,"%H:%M:%S"),dt.strftime(self.slate_end,"%H:%M:%S"),self.mp4,self.fout_dir,self.fout))
 
         # code.interact(local=locals()) 
         # quit()
@@ -54,7 +56,7 @@ class Convert(object):
         # input("Press Enter to continue...")
         self.comp_start = 0
         for i in range(self.DEFAULT_SAMPLES):
-            threaded_camera = tv.ThreadedVideo('./__%s_tmp__.mp4'%(self.output), comp_time=self.comp_time, mode="start")
+            threaded_camera = tv.ThreadedVideo('%s/__%s_tmp__.mp4'%(self.fout_dir,self.fout), comp_time=self.comp_time, mode="start")
             while not threaded_camera.done:
                 try:
                     threaded_camera.show_frame()
@@ -62,8 +64,8 @@ class Convert(object):
                     pass
             self.comp_start += threaded_camera.join().total_seconds()
         self.comp_start /= self.DEFAULT_SAMPLES
-    def save_video(self,scores):
-        threaded_camera = tv.ThreadedVideo('./__%s_tmp__.mp4'%(self.output), comp_start=td(seconds=self.comp_start), comp_time=self.comp_time, fout=self.output, scores=scores)
+    def save_video(self,scores,rtype):
+        threaded_camera = tv.ThreadedVideo('%s/__%s_tmp__.mp4'%(self.fout_dir,self.fout), comp_start=td(seconds=self.comp_start), comp_time=self.comp_time, fout=self.fout_dir+"/"+self.fout, scores=scores, mode=rtype)
         while not threaded_camera.done:
             try:
                 threaded_camera.show_frame()
