@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import code
 import math
+from datetime import timedelta as td
 
 def parse_cmdline(parser=None):
     if not parser:
@@ -28,6 +29,7 @@ if __name__ == '__main__':
     df = pd.read_csv(args.round_list)
     cl = {}
     scores = {}
+    freelist = {}
     total = {}
     norm = {}
     top = {
@@ -39,11 +41,12 @@ if __name__ == '__main__':
     for idx,el in df.iterrows():
         # code.interact(local=locals())
         obj = Convert.Convert(el["flysight"],el["fver"],el["slate"],el["comp"],el["output"],el["mp4"])
-        cl[el["output"]] = (obj,el["rtype"])
+        cl[el["output"]] = (obj,el["rtype"],obj.comp_time)
         if args.convert:
             obj.convert_format()
+    big_dock_list = {}
     for el_out in cl.keys():
-        obj,rtype = cl[el_out]
+        obj,rtype,comp_time = cl[el_out]
         tmp = el_out.split('/')
         fout_dir = '/'.join(tmp[0:-1])
         fout = tmp[-1]
@@ -56,7 +59,7 @@ if __name__ == '__main__':
                 }
             style = []
             dive_plan = []
-            camera = {}
+            camera = []
             dock_list = pd.DataFrame()
             time_list = pd.DataFrame()
             final_score = pd.DataFrame()
@@ -65,6 +68,7 @@ if __name__ == '__main__':
                 df = pd.read_csv(file)
                 df['time_delta'] = pd.to_timedelta(df['time_delta'],unit='s')
                 # code.interact(local=locals())
+                df = df[(comp_time - df['time_delta'] >= td(seconds=0)) | (df['style'].notnull())]
                 if rtype == 'C':
                     data = df['key'][df['key'].notnull()]
                     dock_list[thisID] = data
@@ -74,7 +78,7 @@ if __name__ == '__main__':
                 cp = df['camera_prog'][df['camera_prog'].notnull()].iloc[-1] if 'camera_prog' in df else 0
                 style.append( df['style'][df['style'].notnull()].iloc[-1])
                 dive_plan.append( df['dive_plan'][df['dive_plan'].notnull()].iloc[-1] if 'dive_plan' in df else 0)
-                camera[file] = ( cq , cp )
+                camera.append([ cq , cp ])
 
             if rtype == 'C':
                 final_score['key'] = np.where( dock_list[dock_list == "'+'"].count(axis=1) > len(dock_list.columns)/2,"'+'","'-'")
@@ -83,13 +87,14 @@ if __name__ == '__main__':
                 final_score['style'] = df['style']
                 final_score['dive_plan'] = df['dive_plan'] if 'dive_plan' in df else np.NaN
                 final_score['camera'] = np.NaN
+            # code.interact(local=locals())
             total[el_out]["docks"] = final_score['key'][final_score['key']=="'+'"].count() if rtype == 'C' else 0
             total[el_out]["style"] = round(sum(style)/len(style),1)
             total[el_out]["dive_plan"] = round(sum(dive_plan)/len(dive_plan),1)
-            total[el_out]["camera"] = round(sum([sum(el) for el in camera.values()])/len(camera),1)
+            total[el_out]["camera"] = round(sum([sum(el) for el in camera])/len(camera),1)
             final_score = final_score.append({
                                             'key': np.NaN,
-                                            'time_delta': np.NaN,
+                                            'time_delta': td(seconds=0),
                                             'comments': np.NaN,
                                             'style':total[el_out]["style"],
                                             'dive_plan':total[el_out]["dive_plan"],
@@ -97,10 +102,16 @@ if __name__ == '__main__':
                                             },
                                             ignore_index=True)
             final_score.to_csv("%s/_final_%s.scores"%(fout_dir,fout))
-            scores[el_out] = final_score.values.tolist() 
+            scores[el_out] = final_score[final_score["time_delta"].notnull()].values.tolist() 
+            freelist[el_out] = {
+                "style" : style,
+                "dive_plan" : dive_plan,
+                "camera" : camera
+            }
+            # code.interact(local=locals())
             for k in [k for k in top.keys() if total[el_out][k] > top[k]]:
                 top[k] = total[el_out][k]
-    # code.interact(local=locals())
+            big_dock_list[el_out] = dock_list[dock_list.isin(["'+'","'-'","'0'","'*'"])].dropna()
     for el_out in total:
         rtype = total[el_out]["type"]
         for k in [k for k in top.keys() if total[el_out][k]>0]:
@@ -114,8 +125,8 @@ if __name__ == '__main__':
     # code.interact(local=locals())
     if args.render:
         for el_out in cl.keys():
-            cobj,rtype = cl[el_out]
+            cobj,rtype,comp_time = cl[el_out]
             cobj.get_start()
         for el_out in cl.keys():
-            cobj,rtype = cl[el_out]
-            cobj.save_video(scores[el_out],rtype)
+            cobj,rtype,comp_time = cl[el_out]
+            cobj.save_video(scores[el_out],rtype,big_dock_list[el_out].T,freelist[el_out])

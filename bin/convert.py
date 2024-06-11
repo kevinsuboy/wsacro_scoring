@@ -26,7 +26,7 @@ class Convert(object):
     def __init__(self,flysight,fver,slate,comp,output,mp4):
         self.DEFAULT_COMP_PAD = 5
         self.DEFAULT_SLATE_PAD = 5
-        self.DEFAULT_SAMPLES = 2
+        self.DEFAULT_SAMPLES = 1
         self.DEFAULT_COMP_TIME = 60
         tmp = output.split('/')
         self.fout_dir = '/'.join(tmp[0:-1])
@@ -68,8 +68,8 @@ class Convert(object):
                     pass
             self.comp_start += threaded_camera.join().total_seconds()
         self.comp_start /= self.DEFAULT_SAMPLES
-    def save_video(self,scores,rtype):
-        threaded_camera = tv.ThreadedVideo('%s/__%s_tmp__.mp4'%(self.fout_dir,self.fout), comp_start=td(seconds=self.comp_start), comp_time=self.comp_time, fout=self.fout_dir+"/"+self.fout, scores=scores, mode=rtype)
+    def save_video(self,scores,rtype,dock_list,freelist):
+        threaded_camera = tv.ThreadedVideo('%s/__%s_tmp__.mp4'%(self.fout_dir,self.fout), comp_start=td(seconds=self.comp_start), comp_time=self.comp_time, fout=self.fout_dir+"/"+self.fout, scores=scores, dock_list=dock_list, freelist=freelist, mode=rtype)
         while not threaded_camera.done:
             try:
                 threaded_camera.show_frame()

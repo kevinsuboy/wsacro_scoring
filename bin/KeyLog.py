@@ -104,7 +104,7 @@ class KeyLog(object):
                 on_press=self.on_press,
                 on_release=self.on_release) as listener:
             listener.join()
-            final = ",,,"+input("Please enter style score: ")
+            final = ",0,,"+input("Please enter style score: ")
             if self.round == "F":
                 final += "," + input("Please enter dive_plan score: ")
                 final += "," + input("Please enter camera_quality score: ")
