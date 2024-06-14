@@ -1,2 +1,2 @@
 #!/usr/bin/sh
-PATH=$PATH:./bin
+PATH=$PATH:$PWD/bin

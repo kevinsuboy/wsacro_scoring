@@ -16,7 +16,7 @@ def parse_cmdline():
         formatter_class=argparse.RawTextHelpFormatter,
         description=
         "---Score logger--- \n" \
-        "<space>: sync to exit \n" \
+        "<.>: sync to exit \n" \
         "• +: Point complete \n" \
         "Incomplete points \n\n" \
         "• -: Bad Grip \n" \
@@ -62,24 +62,27 @@ class KeyLog(object):
         self.log = []
         self.start = None
         self.round = round
-        self.accepted = ['+','-','0','*']
+        self.accepted = ['+','-','0','*','/']
 
     def on_press(self,key):
         # print('{0} pressed'.format(
             # key))
         # code.interact(local=locals())
-        if key != Key.esc and (key == Key.space or key.char in self.accepted):
-            if not self.start:
-                self.start = dt.now()
-            tdelta = dt.now()-self.start
-            self.log.append([tdelta,key])
-            if self.log_file:
-                with open(self.log_file, 'a') as f:
-                    row = '%s,%2f,,'%(key, tdelta.total_seconds())
-                    if self.round == "F":
-                        row += ',,'
-                    row += '\n'
-                    f.write(row)
+        try:
+            if key != Key.esc and (key.char in self.accepted):
+                if not self.start:
+                    self.start = dt.now()
+                tdelta = dt.now()-self.start
+                self.log.append([tdelta,key])
+                if self.log_file:
+                    with open(self.log_file, 'a') as f:
+                        row = '%s,%2f,,'%(key, tdelta.total_seconds())
+                        if self.round == "F":
+                            row += ',,'
+                        row += '\n'
+                        f.write(row)
+        except:
+            pass
 
     def on_release(self,key):
         # print('{0} release'.format(
@@ -91,8 +94,9 @@ class KeyLog(object):
             return False
     def run(self,filein):
         print("\n====== scoring for %s ======"%(filein))
-        print("Press <esc> when done\n")
+        # print("Press <esc> when done\n")
         # vlc = '/c/Program\ Files/VideoLAN/VLC/vlc.exe'
+        # code.interact(local=locals())
         subprocess.Popen(["C:/Program Files/VideoLAN/VLC/vlc.exe",filein])
         with open(self.log_file, 'a') as f:
             header = 'key,time_delta,comments,style'
