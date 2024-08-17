@@ -27,8 +27,9 @@ class Convert(object):
         self.DEFAULT_COMP_PAD = 5
         self.DEFAULT_SLATE_PAD = 5
         self.DEFAULT_SAMPLES = 1
-        self.DEFAULT_COMP_TIME = 60
-        rdict = {"4K":"3840:2160","1080":"1920:1080","720":"1280:720"}
+        self.DEFAULT_COMP_TIME = 90
+        # code.interact(local=locals())
+        rdict = {"4K":"3840:2160","1080":"1920:1080","720":"1280:720","540":"720:540","1520":"2704:1520"}
         self.RESOLUTION = rdict[res[0].upper()]
         self.orig_RES = rdict[res[1].upper()]
         self.src_dir = roundN
@@ -43,7 +44,6 @@ class Convert(object):
         slate = dt.strptime(slate,"%H:%M:%S")
         comp = dt.strptime(comp,"%H:%M:%S")
         zero = (slate - dt.strptime("00:00:00","%H:%M:%S")) >= td(seconds=self.DEFAULT_SLATE_PAD)
-        # code.interact(local=locals())
         self.slate_beg = (slate - td(seconds=self.DEFAULT_SLATE_PAD)) if zero else slate
         self.slate_end = slate + td(seconds=self.DEFAULT_SLATE_PAD)
         zero = (comp - dt.strptime("00:00:00","%H:%M:%S")) >= td(seconds=self.DEFAULT_COMP_PAD)
@@ -57,7 +57,7 @@ class Convert(object):
         # code.interact(local=locals()) 
         os.system("ffmpeg -ss %s -to %s -i %s/%s %s -r 30 -an %s/__%s_tmp__.mp4"%(dt.strftime(self.comp_beg,"%H:%M:%S"),dt.strftime(self.comp_end,"%H:%M:%S"),self.src_dir,self.mp4,scale_crop_opt,self.fout_dir,self.fout))
         # os.system("ffmpeg -ss %s -to %s -i %s/%s -vcodec copy -acodec copy %s/__%s_tmp__.mp4"%(dt.strftime(self.comp_beg,"%H:%M:%S"),dt.strftime(self.comp_end,"%H:%M:%S"),self.src_dir,self.mp4,self.fout_dir,self.fout))
-        os.system("ffmpeg -ss %s -to %s -i %s/%s %s -r 30 -an %s/slate_%s.mp4"%(dt.strftime(self.slate_beg,"%H:%M:%S"),dt.strftime(self.slate_end,"%H:%M:%S"),self.src_dir,self.mp4,scale_crop_opt,self.fout_dir,self.fout))
+        # os.system("ffmpeg -ss %s -to %s -i %s/%s %s -r 30 -an %s/slate_%s.mp4"%(dt.strftime(self.slate_beg,"%H:%M:%S"),dt.strftime(self.slate_end,"%H:%M:%S"),self.src_dir,self.mp4,scale_crop_opt,self.fout_dir,self.fout))
         # os.system("ffmpeg -ss %s -to %s -i %s/%s -vcodec copy -acodec copy %s/slate_%s.mp4"%(dt.strftime(self.slate_beg,"%H:%M:%S"),dt.strftime(self.slate_end,"%H:%M:%S"),self.src_dir,self.mp4,self.fout_dir,self.fout))
 
         # quit()

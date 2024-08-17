@@ -19,7 +19,8 @@ def parse_cmdline():
     return parser.parse_args()
 def get_flysight(filein):
     df = pd.read_csv(filein,parse_dates=['time'])
-    t_start = df[(df["velD"]>=9) & (df["hMSL"] > 3000)].iloc[0]['time'] - td(seconds=1)
+    # code.interact(local=locals())
+    t_start = df[(df["velD"]>=9) & (df["hMSL"] > 3500)].iloc[0]['time'] - td(seconds=1)
     df_start = df[(df["time"] >= t_start)].iloc[0]
     comp_run = df[(df["time"] >= df_start["time"]) & (df["hMSL"] >= df_start["hMSL"] - 2286)]
     # df['accel_D'] = (df['velD'] - df['velD'].shift(1)) / (df['time'] - df['time'].shift(1)).dt.total_seconds()

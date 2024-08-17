@@ -22,8 +22,6 @@ def parse_cmdline(parser=None):
     parser.add_argument('-r', '--round_list',action="store",help='',required=True) 
     parser.add_argument('-sid', '--score_id',action="store",help='') 
     parser.add_argument('-t', '--team',action="store",help='') 
-    parser.add_argument('-res', '--resolution',action="store",help='') 
-    parser.add_argument('-ores', '--oresolution',action="store",help='') 
     return parser.parse_args()
 
 if __name__ == '__main__':
@@ -31,28 +29,33 @@ if __name__ == '__main__':
     sid = args.score_id if args.score_id else None
     os.system("sed -i 's/ //g' %s"%(args.round_list))
     df = pd.read_csv(args.round_list)
-    cl = {}
+    top = {}
+    rnd = {}
     scores = {}
     freelist = {}
     total = {}
     norm = {}
-    top = {
+    for idx,el in df.iterrows():
+        os.makedirs("%d_scored"%(el['roundN']),exist_ok=True)
+        ires = str(el["ires"]) if not pd.isnull(el["ires"]) else "720"
+        ores = str(el["ores"]) if not pd.isnull(el["ores"]) else "720"
+        # code.interact(local=locals())
+        obj = Convert.Convert(el["flysight"],el["fver"],el["slate"],el["comp"],el["output"],el["mp4"],str(el['roundN']),(ires,ores), el["seq"])
+        rnd[str(el["roundN"]),el["output"]] = (obj,el["rtype"],obj.comp_time)
+        top[str(el["roundN"])+"_scored"] = {
         "docks": 0,
         "style": 0,
         "dive_plan": 0,
         "camera": 0
         }
-    for idx,el in df.iterrows():
-        os.makedirs("%d_scored"%(el['roundN']),exist_ok=True)
-        obj = Convert.Convert(el["flysight"],el["fver"],el["slate"],el["comp"],el["output"],el["mp4"],str(el['roundN']),(args.resolution if args.resolution else "720", args.oresolution if args.oresolution else "4k"), el["seq"])
-        cl[el["output"]] = (obj,el["rtype"],obj.comp_time,str(el['roundN']))
         if args.convert and (not args.team or el["output"] == args.team):
             obj.convert_format()
     big_dock_list = {}
 
-    iso_list = [el for el in cl.keys() if el == args.team] if args.team else cl.keys()
-    for fout in iso_list:
-        obj,rtype,comp_time,fout_dir = cl[fout]
+    iso_list = [[rn,el] for rn,el in rnd.keys() if el == args.team] if args.team else rnd.keys()
+    # code.interact(local=locals())
+    for fout_dir,fout in iso_list:
+        obj,rtype,comp_time = rnd[(fout_dir,fout)]
         # code.interact(local=locals())
         fout_dir += "_scored"
         if args.score:
@@ -62,7 +65,7 @@ if __name__ == '__main__':
             _ = (kl.KeyLog("%s/_%s_%s.scores"%(fout_dir,fout,sid),rtype).run("%s/__%s_tmp__.mp4"%(fout_dir,fout)))
         if args.render:
             flist = list(filter(None, os.popen("ls %s/_%s_*.scores"%(fout_dir,fout)).read().split('\n')))
-            total[fout] = {
+            total[(fout_dir,fout)] = {
                 "type": rtype,
                 }
             style = []
@@ -99,46 +102,53 @@ if __name__ == '__main__':
                 final_score['dive_plan'] = df['dive_plan'] if 'dive_plan' in df else np.NaN
                 final_score['camera'] = np.NaN
             # code.interact(local=locals())
-            total[fout]["docks"] = final_score['key'][final_score['key']=="'+'"].count() if rtype == 'C' else 0
-            total[fout]["style"] = round(sum(style)/len(style),1)
-            total[fout]["dive_plan"] = round(sum(dive_plan)/len(dive_plan),1)
-            total[fout]["camera"] = round(sum([sum(el) for el in camera])/len(camera),1)
+            total[(fout_dir,fout)]["docks"] = final_score['key'][final_score['key']=="'+'"].count() if rtype == 'C' else 0
+            total[(fout_dir,fout)]["style"] = round(sum(style)/len(style),1)
+            total[(fout_dir,fout)]["dive_plan"] = round(sum(dive_plan)/len(dive_plan),1)
+            total[(fout_dir,fout)]["camera"] = round(sum([sum(el) for el in camera])/len(camera),1)
             final_score = final_score.append({
                                             'key': np.NaN,
                                             'time_delta': td(seconds=0),
                                             'comments': np.NaN,
-                                            'style':total[fout]["style"],
-                                            'dive_plan':total[fout]["dive_plan"],
-                                            'camera':total[fout]["camera"]
+                                            'style':total[(fout_dir,fout)]["style"],
+                                            'dive_plan':total[(fout_dir,fout)]["dive_plan"],
+                                            'camera':total[(fout_dir,fout)]["camera"]
                                             },
                                             ignore_index=True)
             final_score.to_csv("%s/_final_%s.scores"%(fout_dir,fout))
-            scores[fout] = final_score[final_score["time_delta"].notnull()].values.tolist() 
-            freelist[fout] = {
+            scores[(fout_dir,fout)] = final_score[final_score["time_delta"].notnull()].values.tolist() 
+            freelist[(fout_dir,fout)] = {
                 "judges" : judges,
                 "style" : style,
                 "dive_plan" : dive_plan,
                 "camera" : camera
             }
-            # code.interact(local=locals())
-            for k in [k for k in top.keys() if total[fout][k] > top[k]]:
-                top[k] = total[fout][k]
-            big_dock_list[fout] = dock_list[dock_list.isin(["'+'","'-'","'0'","'*'"])].dropna()
-    for fout in total:
-        rtype = total[fout]["type"]
-        for k in [k for k in top.keys() if total[fout][k]>0]:
-            if not fout in norm:
-                norm[fout] = {}
-            norm[fout][k] = total[fout][k]/top[k]
-            norm[fout][k] *= 150 if rtype == "C" else 100
+            for k in [k for k in top[fout_dir].keys() if total[(fout_dir,fout)][k] > top[fout_dir][k]]:
+                top[fout_dir][k] = total[(fout_dir,fout)][k]
+            big_dock_list[(fout_dir,fout)] = dock_list[dock_list.isin(["'+'","'-'","'0'","'*'"])].dropna()
+    for rn,fout in total:
+        rtype = total[rn,fout]["type"]
+        # code.interact(local=locals())
+        for k in [k for k in top[rn].keys() if total[rn,fout][k]>0]:
+            if not (rn,fout) in norm:
+                norm[rn,fout] = {}
+            norm[rn,fout][k] = total[rn,fout][k]/top[rn][k]
+            norm[rn,fout][k] *= 150 if rtype == "C" else 100
     with open("%s.out"%(args.round_list.split('.')[0]), 'w+') as f:
-        for fout in norm:
-            f.write("%s: %d\n"%(fout,sum(norm[fout].values())))
+        for rn,fout in sorted(norm):
+            f.write("%s %s: %d\n"%(rn,fout,sum(norm[rn,fout].values())))
+    # iso_list = [[rn,el] for rn,el in scores.keys() if el == args.team] if args.team else scores.keys()
+    # iso_list = [(el0+"_scored",el1) for el0,el1 in iso_list]
+    # for fout_dir,fout in iso_list:
+    #     print(scores[fout_dir+"_scored",fout])
+    #     print(big_dock_list[fout_dir+"_scored",fout].T)
+    #     print(freelist[fout_dir+"_scored",fout])
+    # code.interact(local=locals())
     if args.render:
-        for fout in iso_list:
-            cobj,rtype,comp_time,_ = cl[fout]
+        for fout_dir,fout in iso_list:
+            cobj,rtype,comp_time = rnd[fout_dir,fout]
             cobj.get_start()
         # code.interact(local=locals())
-        for fout in iso_list:
-            cobj,rtype,comp_time,_ = cl[fout]
-            cobj.save_video(scores[fout],rtype,big_dock_list[fout].T,freelist[fout])
+        for fout_dir,fout in iso_list:
+            cobj,rtype,comp_time = rnd[fout_dir,fout]
+            cobj.save_video(scores[fout_dir+"_scored",fout],rtype,big_dock_list[fout_dir+"_scored",fout].T,freelist[fout_dir+"_scored",fout])
